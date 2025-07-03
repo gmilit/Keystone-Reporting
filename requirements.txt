@@ -1,0 +1,5 @@
+jira==3.8.0
+pandas==2.2.*
+matplotlib==3.9.*
+slack-sdk==3.28.*
+python-dotenv==1.0.*

@@ -1,0 +1,5 @@
+# virtual env & local secrets
+.venv/
+.env
+*.jpg
+__pycache__/

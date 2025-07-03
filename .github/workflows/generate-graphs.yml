@@ -1,0 +1,25 @@
+name: Jira bi-weekly graphs
+
+on:
+  # 06:00 America/New_York – list both UTC hours to stay DST-proof
+  schedule:
+#    - cron: '0 10 */14 * 4'     # EDT  (UTC-4 → 10 UTC)
+    - cron: '0 11 */14 * 4'     # EST  (UTC-5 → 11 UTC)
+  workflow_dispatch:
+
+jobs:
+  graphs:
+    runs-on: ubuntu-latest
+    env:
+      JIRA_URL:            ${{ secrets.JIRA_URL }}
+      JIRA_EMAIL:          ${{ secrets.JIRA_EMAIL }}
+      JIRA_API_TOKEN:      ${{ secrets.JIRA_API_TOKEN }}
+      SLACK_BOT_TOKEN:     ${{ secrets.SLACK_BOT_TOKEN }}
+      SLACK_CHANNEL:       ${{ secrets.SLACK_CHANNEL }}
+      WORK_TYPE_FIELD_ID:  ${{ secrets.WORK_TYPE_FIELD_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -r requirements.txt
+      - run: python generate_graphs.py
