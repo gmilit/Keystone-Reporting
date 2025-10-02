@@ -66,7 +66,7 @@ def weekly_support_table(issues: list) -> pd.DataFrame:
         .sort_index()
     )
 
-    weekly.columns.name = None  # ← drop the index name, kill extra legend label
+    weekly.columns.name = None
     return weekly
 
 
@@ -101,7 +101,7 @@ def save_fig(data, title: str, filename: str,
                            horizontalalignment="right")
 
     plt.tight_layout()
-    plt.savefig(filename, dpi=200, format="jpg")
+    plt.savefig(filename, dpi=400, format="png")
     plt.close()
 
 
@@ -115,7 +115,7 @@ def weekly_support_graph(start: datetime.date):
     support_df = weekly_support_table(support_issues)
     save_fig(support_df,
              "Weekly Support Tickets (Resolved vs Unresolved)",
-             "support.jpg",
+             "support.png",
              stacked=True,
              colors=[JIRA_RED, JIRA_GREEN],
              )
@@ -131,7 +131,9 @@ def weekly_rec_incidents_graph(start: datetime.date):
         fields="created",
     )
     rec_series = weekly_series(rec_issues)
-    save_fig(rec_series, "Weekly Rec Incidents", "p1p2.jpg", colors=JIRA_GREEN)
+    all_weeks = pd.period_range(start, datetime.date.today(), freq="W-SAT")
+    rec_series = rec_series.reindex(all_weeks.start_time, fill_value=0)
+    save_fig(rec_series, "Weekly Rec Incidents", "p1p2.png", colors=JIRA_GREEN)
 # ────────────────────────────── main
 
 def main(show: bool = False):
@@ -140,53 +142,6 @@ def main(show: bool = False):
 
     weekly_support_graph(start)
     weekly_rec_incidents_graph(start)
-
-    # # 3️⃣ Stacked work-type mix
-    # wtf = os.getenv("WORK_TYPE_FIELD_ID")  # custom field key
-    # work_issues = jira.search_issues(
-    #     f"{jql_window}",
-    #     maxResults=False,
-    #     fields=f"created,{wtf}",
-    # )
-    # rows = [
-    #     {
-    #         "created": i.fields.created,
-    #         "work_type": getattr(i.fields, wtf) or "Unspecified",
-    #     }
-    #     for i in work_issues
-    # ]
-    # wdf = pd.DataFrame(rows)
-    # wdf["created"] = pd.to_datetime(wdf["created"])
-    # wdf["week"] = wdf["created"].dt.to_period("W-SAT").dt.start_time
-    # stacked = (
-    #     wdf.pivot_table(
-    #         index="week", columns="work_type", values="created", aggfunc="count"
-    #     )
-    #     .fillna(0)
-    #     .sort_index()
-    # )
-    # save_fig(stacked, "Weekly Work-Type Mix", "mix.jpg", stacked=True)
-
-    # # ── preview locally with --show
-    # if show:
-    #     plt.switch_backend("MacOSX" if os.uname().sysname == "Darwin" else "TkAgg")
-    #     for f in ("support.jpg", "p1p2.jpg", "mix.jpg"):
-    #         img = plt.imread(f)
-    #         plt.figure(); plt.imshow(img); plt.axis("off")
-    #     plt.show()
-    #
-    # # ── upload when SLACK_BOT_TOKEN is present (CI & local)
-    # token = os.getenv("SLACK_BOT_TOKEN")
-    # if token:
-    #     slack = WebClient(token=token)
-    #     channel = os.getenv("SLACK_CHANNEL")
-    #     for f in ("support.jpg", "p1p2.jpg", "mix.jpg"):
-    #         slack.files_upload(
-    #             channels=channel,
-    #             file=f,
-    #             title=f.replace(".jpg", ""),
-    #             initial_comment=f"*{f.replace('.jpg', '').title()}*",
-    #         )
 
 
 if __name__ == "__main__":
