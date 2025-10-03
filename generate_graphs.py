@@ -27,8 +27,9 @@ plt.switch_backend("Agg")  # safe for CI
 JIRA_GREEN = "#8cc14c"  # Jira “success” green
 JIRA_RED = "#d04437"  # Jira “danger” red
 jira = JIRA(
-    os.getenv("JIRA_URL"),
+    server=os.getenv("JIRA_URL"),
     basic_auth=(os.getenv("JIRA_EMAIL"), os.getenv("JIRA_API_TOKEN")),
+    options={"api_version": "3"},
 )
 
 
@@ -49,9 +50,13 @@ def sunday_weeks_ago(n: int) -> datetime.date:
 
 
 def weekly_support_table(issues: list) -> pd.DataFrame:
-    rows = [{"created": i.fields.created,
-             "resolved": i.fields.status.name.lower() == "done"}
-            for i in issues]
+    rows = [
+        {
+            "created": i.fields.created,
+            "resolved": i.fields.status.name.lower() == "done",
+        }
+        for i in issues
+    ]
 
     df = pd.DataFrame(rows)
 
@@ -71,17 +76,17 @@ def weekly_support_table(issues: list) -> pd.DataFrame:
 
 
 def weekly_series(issues: list) -> pd.Series:
-    dates = pd.to_datetime([i.fields.created for i in issues], utc=True).tz_convert(None)
+    dates = pd.to_datetime([i.fields.created for i in issues], utc=True).tz_convert(
+        None
+    )
     weeks = dates.to_period("W-SAT").start_time
     return weeks.value_counts().sort_index()
 
 
-def save_fig(data, title: str, filename: str,
-             *, stacked=False, colors=None):
+def save_fig(data, title: str, filename: str, *, stacked=False, colors=None):
     # ------------------------------------------------- plot
     if isinstance(data, pd.DataFrame):
-        ax = data.plot(kind="bar", stacked=stacked,
-                       figsize=(9, 4), color=colors)
+        ax = data.plot(kind="bar", stacked=stacked, figsize=(9, 4), color=colors)
     else:
         ax = data.plot(kind="bar", figsize=(9, 4), color=colors)
 
@@ -92,13 +97,15 @@ def save_fig(data, title: str, filename: str,
     # ------------------------------------------------- pretty X labels
     if isinstance(data.index, (pd.DatetimeIndex, pd.PeriodIndex)):
         # convert PeriodIndex to Timestamp first
-        idx = (data.index.to_timestamp() if isinstance(data.index, pd.PeriodIndex)
-               else data.index)
+        idx = (
+            data.index.to_timestamp()
+            if isinstance(data.index, pd.PeriodIndex)
+            else data.index
+        )
         labels = [d.strftime("%Y-%m-%d") for d in idx]
 
         ax.set_xticks(range(len(labels)))  # integer positions
-        ax.set_xticklabels(labels, rotation=45,
-                           horizontalalignment="right")
+        ax.set_xticklabels(labels, rotation=45, horizontalalignment="right")
 
     plt.tight_layout()
     plt.savefig(filename, dpi=400, format="png")
@@ -113,13 +120,13 @@ def weekly_support_graph(start: datetime.date):
         fields="created,status",
     )
     support_df = weekly_support_table(support_issues)
-    save_fig(support_df,
-             "Weekly Support Tickets (Resolved vs Unresolved)",
-             "support.png",
-             stacked=True,
-             colors=[JIRA_RED, JIRA_GREEN],
-             )
-
+    save_fig(
+        support_df,
+        "Weekly Support Tickets (Resolved vs Unresolved)",
+        "support.png",
+        stacked=True,
+        colors=[JIRA_RED, JIRA_GREEN],
+    )
 
 
 def weekly_rec_incidents_graph(start: datetime.date):
@@ -134,7 +141,10 @@ def weekly_rec_incidents_graph(start: datetime.date):
     all_weeks = pd.period_range(start, datetime.date.today(), freq="W-SAT")
     rec_series = rec_series.reindex(all_weeks.start_time, fill_value=0)
     save_fig(rec_series, "Weekly Rec Incidents", "p1p2.png", colors=JIRA_GREEN)
+
+
 # ────────────────────────────── main
+
 
 def main(show: bool = False):
     start = sunday_weeks_ago(8)  # 0..8 → 9 weeks inclusive
