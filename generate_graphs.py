@@ -112,8 +112,7 @@ def save_fig(data, title: str, filename: str, *, stacked=False, colors=None):
     plt.close()
 
 
-def weekly_support_graph(start: datetime.date):
-    jql_window = f'project = FS AND created >= "{start.isoformat()}"'
+def weekly_support_graph(start: datetime.date, jql_window: str):
     support_issues = jira.search_issues(
         f"{jql_window}",
         maxResults=False,
@@ -129,9 +128,8 @@ def weekly_support_graph(start: datetime.date):
     )
 
 
-def weekly_rec_incidents_graph(start: datetime.date):
+def weekly_rec_incidents_graph(start: datetime.date, jql_window: str):
     # 2️⃣ Rec incidents
-    jql_window = f'project = FS AND created >= "{start.isoformat()}"'
     rec_issues = jira.search_issues(
         f'{jql_window} AND summary ~ "REC ISSUE"',
         maxResults=False,
@@ -148,10 +146,10 @@ def weekly_rec_incidents_graph(start: datetime.date):
 
 def main(show: bool = False):
     start = sunday_weeks_ago(8)  # 0..8 → 9 weeks inclusive
-    jql_window = f'project = FS AND created >= "{start.isoformat()}"'
+    jql_window = f'(project = FS OR (project = ES AND "On Call Team" = "Keystone")) AND created >= "{start.isoformat()}"'
 
-    weekly_support_graph(start)
-    weekly_rec_incidents_graph(start)
+    weekly_support_graph(start, jql_window)
+    weekly_rec_incidents_graph(start, jql_window)
 
 
 if __name__ == "__main__":
