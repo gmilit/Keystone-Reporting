@@ -3,3 +3,4 @@
 .env
 *.jpg
 __pycache__/
+.DS_Store
